@@ -1,3 +1,9 @@
+"""
+Module: recommendations_endpoint
+
+Defines the HTTP route for retrieving location-category review recommendations.
+Delegates scoring and sorting logic to RecommendationService to maintain thin controllers.
+"""
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
@@ -27,12 +33,15 @@ async def get_recommendations(
     db: Session = Depends(get_db)
 ):
     """
-    Retrieve location-category combinations that need review, prioritized by:
+    Fetch top location-category combinations requiring review.
 
-    - **Never reviewed**: Highest priority (score = 100)
-    - **Reviewed >30 days ago**: Priority proportional to days since review (score = days * 2, capped at 100)
+    - Never reviewed combinations receive the highest priority (score = 100).
+    - Those not reviewed in over 30 days are scored by days_since_review * 2, capped at 100.
 
-    Returns top recommendations sorted by score.
+    :param limit: Maximum number of recommendations to return
+    :type limit: int
+    :param db: Database session dependency
+    :return: List of RecommendationScore models
     """
     service = RecommendationService(db)
     return service.get_recommendations(limit)

@@ -1,3 +1,8 @@
+"""
+Module: reviews_endpoint
+
+Defines the HTTP route for recording location-category reviews.
+"""
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.core.models.schemas import LocationCategoryReview
