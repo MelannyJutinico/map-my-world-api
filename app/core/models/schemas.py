@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Union
 
 class LocationBase(BaseModel):
     latitude: float = Field(..., ge=-90, le=90, example=40.7128)
@@ -8,7 +8,14 @@ class LocationBase(BaseModel):
 
 
 class LocationCreate(LocationBase):
-    pass
+    category_ids: Optional[List[int]] = Field(
+        None, 
+        description="IDs of existing categories to associate"
+    )
+    description: Optional[str] = Field(
+        None, 
+        description="Description for future automatic categorization"
+    )
 
 class Location(LocationBase):
     id: int
@@ -18,3 +25,18 @@ class Location(LocationBase):
     
     class Config:
         from_attributes = True  
+
+class CategoryBase(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50)
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class Category(CategoryBase):
+    id: int
+    
+    class Config:
+        from_attributes = True
+
+class LocationWithCategories(Location):
+    categories: List[Category] = []
