@@ -2,3 +2,8 @@ fastapi
 uvicorn
 python-dotenv
 pydantic-settings
+pydantic
+sqlalchemy
+httpx
+transformers
+torch
