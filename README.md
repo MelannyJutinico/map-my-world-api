@@ -4,30 +4,45 @@ Map My World is a geolocation API developed in FastAPI that allows users to regi
 
 ## Key Features
 
-- **Location & Category Management**: 
-  - Create locations with coordinates and optional description or category IDs.
+
+- **Location & Category Management**  
+  - Create, read, update and delete locations and categories.  
+  - When you POST a new location you can supply:
+    - `category_ids`: list of existing category IDs, **or**
+    - `description`: free-text for NLP inference of category.  
   - Automatically enrich location data using reverse geocoding (OpenCageData) to retrieve address, city, and country.
-  - Classify locations with relevant categories using BART-MNLI NLP model when no category is provided.
 
-- **Recommendation Engine**:
-  - Scores combinations of locations and categories.
-  - Prioritizes places never reviewed or not reviewed in over 30 days.
-  - Custom logic to balance novelty and time relevance.
+- **AI-powered Classification**  
+  - Uses Hugging Face’s `facebook/bart-large-mnli` zero-shot model to infer categories using BART-MNLI NLP model when no category is provided.
 
-- **Clean Architecture**:
-  - Separated concerns: routers, services, schemas, and repositories.
-  - Asynchronous support using FastAPI and HTTPX.
+
+- **Recommendation Engine**  
+  - Scores every location-category combination:
+    - **100** for never-reviewed items  
+    - **days_since_last_review × 2** (capped at 100) for items reviewed over 30 days ago  
+  - Returns the top N combinations that need a fresh review.
+
+- **Clean Architecture**  
+  - **Routers** for HTTP layer  
+  - **Services** for business logic  
+  - **Repositories** for data access  
+  - **Schemas** (Pydantic) for validation & docs  
+  - **Utils** for geocoding and NLP  
+
+- **CORS & Settings**  
+  - Configurable via environment variables  
+  - CORS origins defined in `ALLOWED_ORIGINS`  
 
 ## Tech Stack
 
 - Python 3.11+
 - FastAPI
 - SQLAlchemy (Async)
-- PostgreSQL / SQLite (local)
+- SQLite (local)
 - OpenCageData API (Reverse Geocoding)
 - Hugging Face Transformers (NLP Classification)
 - HTTPX for async HTTP calls
-
+- OpenCageData API for reverse geocoding  
   
 ## Folder Structure
 
@@ -44,13 +59,19 @@ app/
 │   ├── models/
 │   │   ├── database.py                 # SQLAlchemy DB engine and base
 │   │   └── schemas.py                  # Pydantic schemas
+│   ├── services/
+│   │   ├── category_service.py
+│   │   ├── location_service.py
+│   │   ├── recommendation_service.py
+│   │   └── review_service.py
 │   └── utils/
 │       ├── geocoding.py                # Integration with OpenCage API
 │       └── nlp.py                      # Classification using Hugging Face models
 ├── db/
-│   └── repositories/
-│       ├── category_repository.py      # Category DB operations
-│       └── location_repository.py      # Location DB operations
+│   ├── repositories/
+│   │   ├──category_repository.py      # Category DB operations
+│   │   └── location_repository.py      # Location DB operations
+│   └──session.py           # Engine & session factory
 ├── main.py                             # FastAPI app entry point
 └── config.py                           # Environment variable settings
 ```
@@ -72,7 +93,9 @@ app/
 
 3. Create a `.env` file and configure your API key:
     ```env
-    OPENCAGE_API_KEY=your_key_here
+    OPENCAGE_API_KEY=your_opencage_key
+    DATABASE_URL=sqlite:///./mapmyworld.db
+    ALLOWED_ORIGINS=http://localhost:3000,http://localhost
     ```
 
 4. Start the app:
@@ -80,14 +103,7 @@ app/
     uvicorn app.main:app --reload
     ```
 
-## Smart Categorization
 
-When a user provides a textual description, the API uses the `facebook/bart-large-mnli` model to infer the most suitable category based on semantic similarity with available options.
-
-## Recommendation Scoring Logic
-
-- **Score 100**: Never reviewed combinations.
-- **Score = days since last review × 2**: For combinations reviewed over 30 days ago.
 
 The system ensures relevant and timely suggestions by dynamically prioritizing what's due for review.
 
