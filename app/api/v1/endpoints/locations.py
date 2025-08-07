@@ -11,8 +11,9 @@ from app.core.models.schemas import (
 from app.core.utils.geocoding import reverse_geocode
 from app.db.repositories.location_repository import LocationRepository
 from app.db.repositories.category_repository import CategoryRepository
-from app.core.models.database import Location, location_category
+from app.core.models.database import location_category
 from app.db.session import get_db
+from app.core.utils.nlp import classify_description
 
 router = APIRouter(
     tags=["locations"],
@@ -67,6 +68,19 @@ async def create_location(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Categories not found: {sorted(missing)}"
             )
+        
+    if not location.category_ids and location.description:
+        # Obtener nombres de categorías existentes
+        categories = category_repo.get_categories()
+        category_names = [cat.name for cat in categories]
+
+        # Clasificar descripción contra categorías disponibles
+        predicted = classify_description(location.description, category_names)
+
+        # Buscar categoría correspondiente
+        matched = category_repo.get_category_by_name(predicted)
+        if matched:
+            inferred_category_ids = [matched.id]
     
     
     geo_data = {}
@@ -80,7 +94,7 @@ async def create_location(
 
     return repo.create_location_with_categories(
         location_data=location_data,
-        category_ids=location.category_ids
+        category_ids=location.category_ids or inferred_category_ids
     )
 
 @router.get(
