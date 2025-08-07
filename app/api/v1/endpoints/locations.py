@@ -70,14 +70,14 @@ async def create_location(
             )
         
     if not location.category_ids and location.description:
-        # Obtener nombres de categorías existentes
+   
         categories = category_repo.get_categories()
         category_names = [cat.name for cat in categories]
 
-        # Clasificar descripción contra categorías disponibles
+
         predicted = classify_description(location.description, category_names)
 
-        # Buscar categoría correspondiente
+  
         matched = category_repo.get_category_by_name(predicted)
         if matched:
             inferred_category_ids = [matched.id]
@@ -98,7 +98,7 @@ async def create_location(
     )
 
 @router.get(
-    "/review-statuses",  # ← usa plural o subruta para evitar conflictos
+    "/review-statuses",  
     response_model=List[LocationReviewStatus],
     summary="Get last reviewed date and review count per location"
 )

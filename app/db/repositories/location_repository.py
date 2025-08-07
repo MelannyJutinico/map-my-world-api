@@ -126,7 +126,6 @@ class LocationRepository:
                 "category_name": category_name
             })
 
-        # Sort by score descending, then by oldest review first (None treated as oldest)
         recommendations.sort(
             key=lambda x: (-x["score"], x["last_reviewed"] or datetime.min)
         )
