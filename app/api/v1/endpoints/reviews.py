@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+"""
+Module: reviews_endpoint
+
+Defines the HTTP route for recording location-category reviews.
+"""
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.core.models.schemas import LocationCategoryReview
-from app.db.repositories.location_repository import LocationRepository
+from app.core.services.review_service import ReviewService
 from app.db.session import get_db
 
 router = APIRouter(
     tags=["reviews"],   
     prefix="/reviews"
-    )
+)
 
 @router.post(
     "/",
@@ -26,9 +31,5 @@ async def record_review(
     Record that a specific location-category combination was reviewed.
     Updates the last_reviewed timestamp and increments review_count.
     """
-    repo = LocationRepository(db)
-    if not repo.record_review(review.location_id, review.category_id, review.last_reviewed):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Location or category not found"
-        )
+    service = ReviewService(db)
+    return service.record_review(review)
