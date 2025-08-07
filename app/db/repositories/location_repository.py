@@ -1,7 +1,11 @@
-from typing import List, Optional
+
+from typing import List
+from sqlalchemy import  func, or_, select
 from sqlalchemy.orm import Session, joinedload
-from app.core.models.database import Category, Location
-from app.core.models.schemas import LocationCreate, LocationUpdate
+from app.core.models.database import Category, Location, location_category
+from app.core.models.schemas import LocationUpdate
+from datetime import datetime, timedelta
+from sqlalchemy import func, select
 
 class LocationRepository:
     def __init__(self, db: Session):
@@ -54,3 +58,77 @@ class LocationRepository:
             self.db.commit()
             return True
         return False
+        
+    def record_review(self, location_id: int, category_id: int, last_reviewed_: datetime) -> bool:
+        """Record a review for a location-category pair"""
+        relation = self.db.execute(
+            select(location_category)
+            .where(location_category.c.location_id == location_id)
+            .where(location_category.c.category_id == category_id)
+        ).first()
+        
+        if not relation:
+            return False
+        
+        self.db.execute(
+            location_category.update()
+            .where(location_category.c.location_id == location_id)
+            .where(location_category.c.category_id == category_id)
+            .values(
+                last_reviewed=last_reviewed_,
+                review_count=location_category.c.review_count + 1
+            )
+        )
+        self.db.commit()
+        return True
+
+    def get_review_recommendations(self, limit: int = 10) -> List[dict]:
+        """Get top location-category pairs not reviewed in the last 30 days, prioritized by a score."""
+        # Define cutoff datetime
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+        # Select pairs never reviewed or reviewed before the cutoff
+        stmt = select(
+            location_category.c.location_id,
+            location_category.c.category_id,
+            location_category.c.last_reviewed,
+            Location.address.label("location_name"),
+            Category.name.label("category_name")
+        ).join(
+            Location, Location.id == location_category.c.location_id
+        ).join(
+            Category, Category.id == location_category.c.category_id
+        ).where(
+            or_(
+                location_category.c.last_reviewed.is_(None),
+                location_category.c.last_reviewed < thirty_days_ago
+            )
+        )
+
+        rows = self.db.execute(stmt).all()
+        recommendations = []
+
+        for location_id, category_id, last_reviewed, location_name, category_name in rows:
+            if last_reviewed is None:
+                days_since = None
+                score = 100.0
+            else:
+                days_since = (datetime.utcnow() - last_reviewed).days
+                score = min(100.0, days_since * 2)
+
+            recommendations.append({
+                "location_id": location_id,
+                "category_id": category_id,
+                "score": round(score, 2),
+                "last_reviewed": last_reviewed,
+                "days_since_review": days_since,
+                "location_name": location_name or f"Location {location_id}",
+                "category_name": category_name
+            })
+
+        # Sort by score descending, then by oldest review first (None treated as oldest)
+        recommendations.sort(
+            key=lambda x: (-x["score"], x["last_reviewed"] or datetime.min)
+        )
+
+        return recommendations[:limit]

@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session, joinedload
 from app.core.models.database import Category
 from app.core.models.schemas import CategoryCreate, CategoryUpdate
@@ -47,6 +48,11 @@ class CategoryRepository:
         self.db.commit()
         self.db.refresh(db_category)
         return db_category
+    
+    def get_categories_by_ids(self, category_ids: List[int]):
+        return self.db.query(Category).filter(
+            Category.id.in_(category_ids)
+        ).all()
 
     def delete_category(self, category_id: int):
         db_category = self.get_category(category_id)

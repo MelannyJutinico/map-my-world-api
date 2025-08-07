@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 
@@ -46,6 +47,11 @@ class Category(CategoryBase):
 class LocationWithCategories(Location):
     categories: List[Category] = []
 
+class LocationReviewStatus(BaseModel):
+    location_id: int
+    last_reviewed: Optional[datetime]
+    review_count: int
+
 
 class LocationResponse(LocationBase):
     id: int
@@ -53,4 +59,18 @@ class LocationResponse(LocationBase):
     
     class Config:
         from_attributes = True
+
+class LocationCategoryReview(BaseModel):
+    location_id: int
+    category_id: int
+    last_reviewed: datetime 
+
+class RecommendationScore(BaseModel):
+    location_id: int
+    category_id: int
+    score: float
+    last_reviewed: Optional[datetime] = None
+    days_since_review: Optional[int] = None
+    location_name: str
+    category_name: str
         

@@ -1,20 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.models.schemas import (
     LocationCreate,
     LocationResponse,
     LocationUpdate,
-    Category
+    LocationReviewStatus
 )
 from app.db.repositories.location_repository import LocationRepository
 from app.db.repositories.category_repository import CategoryRepository
+from app.core.models.database import Location, location_category
 from app.db.session import get_db
 
 router = APIRouter(
     tags=["locations"],
     prefix="/locations"
 )
+
+
 
 @router.post(
     "/",
@@ -69,6 +73,32 @@ async def create_location(
         location_data=location_data,
         category_ids=location.category_ids
     )
+
+@router.get(
+    "/review-statuses",  # ← usa plural o subruta para evitar conflictos
+    response_model=List[LocationReviewStatus],
+    summary="Get last reviewed date and review count per location"
+)
+async def get_locations_review_status(
+    db: Session = Depends(get_db)
+):
+    stmt = select(
+        location_category.c.location_id,
+        func.max(location_category.c.last_reviewed).label("last_reviewed"),
+        func.sum(location_category.c.review_count).label("review_count")
+    ).group_by(location_category.c.location_id)
+
+    results = db.execute(stmt).all()
+
+    return [
+    LocationReviewStatus(
+        location_id=row.location_id,
+        last_reviewed=row.last_reviewed,
+        review_count=row.review_count
+    )
+    for row in results
+]
+
 
 @router.get(
     "/{location_id}",
@@ -173,3 +203,4 @@ async def delete_location(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Location not found"
         )
+    

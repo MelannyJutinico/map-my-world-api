@@ -7,7 +7,8 @@ location_category = Table(
     Base.metadata,
     Column('location_id', Integer, ForeignKey('locations.id'), primary_key=True),
     Column('category_id', Integer, ForeignKey('categories.id'), primary_key=True),
-    Column('last_reviewed', DateTime, nullable=True)
+    Column('last_reviewed', DateTime, nullable=True),
+    Column('review_count', Integer, default=0)
 )
 
 class Location(Base):
