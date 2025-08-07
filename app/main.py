@@ -15,9 +15,7 @@ app = FastAPI(
 app.include_router(locations.router, prefix="/api/v1/locations")
 app.include_router(categories.router, prefix="/api/v1/categories")
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Map My World API!"}
+
 
 @app.get("/health")
 def health_check():
