@@ -9,13 +9,16 @@ class LocationBase(BaseModel):
 
 class LocationCreate(LocationBase):
     category_ids: Optional[List[int]] = Field(
-        None, 
+        None,
         description="IDs of existing categories to associate"
     )
     description: Optional[str] = Field(
-        None, 
+        None,
         description="Description for AI automatic categorization"
     )
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
 
 class LocationUpdate(BaseModel):
     description: Optional[str] = Field(None, example="Updated description")
@@ -55,10 +58,14 @@ class LocationReviewStatus(BaseModel):
 
 class LocationResponse(LocationBase):
     id: int
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
     categories: List[Category] = []
-    
+
     class Config:
         from_attributes = True
+
 
 class LocationCategoryReview(BaseModel):
     location_id: int

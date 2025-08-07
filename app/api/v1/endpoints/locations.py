@@ -8,6 +8,7 @@ from app.core.models.schemas import (
     LocationUpdate,
     LocationReviewStatus
 )
+from app.core.utils.geocoding import reverse_geocode
 from app.db.repositories.location_repository import LocationRepository
 from app.db.repositories.category_repository import CategoryRepository
 from app.core.models.database import Location, location_category
@@ -67,8 +68,16 @@ async def create_location(
                 detail=f"Categories not found: {sorted(missing)}"
             )
     
-    # Crear la ubicación
+    
+    geo_data = {}
+    if not location.description or not location.address or not location.city or not location.country:
+        geo_data = await reverse_geocode(location.latitude, location.longitude) or {}
+
     location_data = location.model_dump(exclude={"category_ids"})
+    location_data["address"] = location_data.get("address") or geo_data.get("address")
+    location_data["city"] = location_data.get("city") or geo_data.get("city")
+    location_data["country"] = location_data.get("country") or geo_data.get("country")
+
     return repo.create_location_with_categories(
         location_data=location_data,
         category_ids=location.category_ids
